@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: filler-job
+  namespace: team-a
+  labels:
+    kueue.x-k8s.io/queue-name: team-training-queue
+    kueue.x-k8s.io/priority-class: low-priority
+spec:
+  parallelism: 1
+  completions: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: filler
+          image: nvcr.io/nvidia/k8s/cuda-sample:vectoradd-cuda11.7.1
+          command: ["sh", "-c", "echo 'filler-job started, holding 1 GPU'; sleep 90; echo 'filler-job done'"]
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+              nvidia.com/gpu: 1
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+              nvidia.com/gpu: 1
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule

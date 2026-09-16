@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gang-job
+  namespace: team-a
+  labels:
+    kueue.x-k8s.io/queue-name: team-training-queue
+    kueue.x-k8s.io/priority-class: low-priority
+spec:
+  parallelism: 2
+  completions: 2
+  completionMode: Indexed
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: gang-worker
+          image: nvcr.io/nvidia/k8s/cuda-sample:vectoradd-cuda11.7.1
+          command: ["sh", "-c", "echo \"gang worker $JOB_COMPLETION_INDEX started\"; sleep 60; echo \"gang worker $JOB_COMPLETION_INDEX done\""]
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+              nvidia.com/gpu: 1
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+              nvidia.com/gpu: 1
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule

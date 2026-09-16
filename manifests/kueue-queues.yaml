@@ -11,7 +11,7 @@ spec:
   cohort: "gpu-pool"
   namespaceSelector: {}
   preemption:
-    withinClusterQueue: LowerPriority      # start with NO preemption — baseline for the prediction test
+    withinClusterQueue: Never      # start with NO preemption — baseline for the prediction test
     reclaimWithinCohort: Never
   resourceGroups:
     - coveredResources: ["cpu", "memory", "nvidia.com/gpu"]
