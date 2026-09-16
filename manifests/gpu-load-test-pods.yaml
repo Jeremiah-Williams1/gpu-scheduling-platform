@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-load-test-1
+  labels:
+    app: gpu-load-test
+spec:
+  restartPolicy: Never
+  containers:
+    - name: torch-container
+      image: pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
+      command:
+        - "python"
+        - "-c"
+        - |
+          import torch, time
+          device = torch.device('cuda')
+          size = 18000  # ~1.3GB per matrix, ~4-5GB total working set
+          a = torch.rand((size, size), device=device)
+          b = torch.rand((size, size), device=device)
+          while True:
+              c = torch.matmul(a, b)
+              torch.cuda.synchronize()
+              print(time.strftime('%Y-%m-%d %H:%M:%S'),
+                    'allocated_MB=%.0f' % (torch.cuda.memory_allocated()/1e6),
+                    'reserved_MB=%.0f' % (torch.cuda.memory_reserved()/1e6),
+                    flush=True)
+              time.sleep(1)
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-load-test-2
+  labels:
+    app: gpu-load-test
+spec:
+  restartPolicy: Never
+  containers:
+    - name: torch-container
+      image: pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
+      command:
+        - "python"
+        - "-c"
+        - |
+          import torch, time
+          device = torch.device('cuda')
+          size = 18000
+          a = torch.rand((size, size), device=device)
+          b = torch.rand((size, size), device=device)
+          while True:
+              c = torch.matmul(a, b)
+              torch.cuda.synchronize()
+              print(time.strftime('%Y-%m-%d %H:%M:%S'),
+                    'allocated_MB=%.0f' % (torch.cuda.memory_allocated()/1e6),
+                    'reserved_MB=%.0f' % (torch.cuda.memory_reserved()/1e6),
+                    flush=True)
+              time.sleep(1)
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-load-test-3
+  labels:
+    app: gpu-load-test
+spec:
+  restartPolicy: Never
+  containers:
+    - name: torch-container
+      image: pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
+      command:
+        - "python"
+        - "-c"
+        - |
+          import torch, time
+          device = torch.device('cuda')
+          size = 18000  # same size as the other two -> pushes combined footprint toward the T4's 15GB limit
+          a = torch.rand((size, size), device=device)
+          b = torch.rand((size, size), device=device)
+          while True:
+              c = torch.matmul(a, b)
+              torch.cuda.synchronize()
+              print(time.strftime('%Y-%m-%d %H:%M:%S'),
+                    'allocated_MB=%.0f' % (torch.cuda.memory_allocated()/1e6),
+                    'reserved_MB=%.0f' % (torch.cuda.memory_reserved()/1e6),
+                    flush=True)
+              time.sleep(1)
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+  tolerations:
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule

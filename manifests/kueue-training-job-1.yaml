@@ -1,0 +1,31 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: training-job-1
+  namespace: team-a
+  labels:
+    kueue.x-k8s.io/queue-name: team-training-queue
+    kueue.x-k8s.io/priority-class: low-priority
+spec:
+  parallelism: 1
+  completions: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: training-workload
+          image: nvcr.io/nvidia/k8s/cuda-sample:vectoradd-cuda11.7.1
+          command: ["sh", "-c", "echo 'training-job-1 started'; sleep 300; echo 'training-job-1 done'"]
+          resources:
+            requests:
+              cpu: "1"
+              memory: "1Gi"
+              nvidia.com/gpu: 2
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+              nvidia.com/gpu: 2
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule

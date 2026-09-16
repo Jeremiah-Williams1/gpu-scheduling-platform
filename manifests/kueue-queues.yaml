@@ -1,0 +1,66 @@
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ResourceFlavor
+metadata:
+  name: t4-flavor
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: training-cq
+spec:
+  cohort: "gpu-pool"
+  namespaceSelector: {}
+  preemption:
+    withinClusterQueue: LowerPriority      # start with NO preemption — baseline for the prediction test
+    reclaimWithinCohort: Never
+  resourceGroups:
+    - coveredResources: ["cpu", "memory", "nvidia.com/gpu"]
+      flavors:
+        - name: t4-flavor
+          resources:
+            - name: "cpu"
+              nominalQuota: 2
+            - name: "memory"
+              nominalQuota: 8Gi
+            - name: "nvidia.com/gpu"
+              nominalQuota: 2   # training gets 2 of the 4 replicated GPU slots
+              borrowingLimit: 0 # hard cap — cannot borrow idle slots from inference-cq
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: inference-cq
+spec:
+  cohort: "gpu-pool"
+  namespaceSelector: {}
+  preemption:
+    withinClusterQueue: Never
+    reclaimWithinCohort: Never
+  resourceGroups:
+    - coveredResources: ["cpu", "memory", "nvidia.com/gpu"]
+      flavors:
+        - name: t4-flavor
+          resources:
+            - name: "cpu"
+              nominalQuota: 2
+            - name: "memory"
+              nominalQuota: 8Gi
+            - name: "nvidia.com/gpu"
+              nominalQuota: 2   # inference gets the other 2 slots
+              borrowingLimit: 0 # hard cap — symmetric with training-cq
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: LocalQueue
+metadata:
+  name: team-training-queue
+  namespace: team-a
+spec:
+  clusterQueue: training-cq
+---
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: LocalQueue
+metadata:
+  name: team-inference-queue
+  namespace: team-b
+spec:
+  clusterQueue: inference-cq
